@@ -1,4 +1,4 @@
-// List of quiz questions and choices
+// Questions data
 const questions = [
   {
     question: "What is the capital of France?",
@@ -27,55 +27,77 @@ const questions = [
   },
 ];
 
-// Initialize userAnswers from session storage or an empty array
-let userAnswers = JSON.parse(sessionStorage.getItem('progress')) || [];
-
-// Function to render questions and choices
+// Function to render questions
 function renderQuestions() {
   const questionsElement = document.getElementById('questions');
-  questionsElement.innerHTML = ''; // Clear previous content
-  questions.forEach((question, i) => {
-    const questionElement = document.createElement('div');
-    const questionText = document.createTextNode(question.question);
-    questionElement.appendChild(questionText);
+  questionsElement.innerHTML = ''; // Clear existing questions
+
+  // Loop through each question and create HTML elements
+  questions.forEach((question, index) => {
+    const questionDiv = document.createElement('div');
+    const questionText = document.createElement('p');
+    questionText.textContent = question.question;
+    questionDiv.appendChild(questionText);
+
     question.choices.forEach(choice => {
-      const choiceElement = document.createElement('input');
-      choiceElement.setAttribute('type', 'radio');
-      choiceElement.setAttribute('name', `question-${i}`);
-      choiceElement.setAttribute('value', choice);
-      if (userAnswers[i] === choice) {
-        choiceElement.setAttribute('checked', true);
+      const choiceLabel = document.createElement('label');
+      const choiceInput = document.createElement('input');
+      choiceInput.type = 'radio';
+      choiceInput.name = `question-${index}`;
+      choiceInput.value = choice;
+
+      // Check if the choice was previously selected
+      const savedAnswers = JSON.parse(sessionStorage.getItem('progress')) || [];
+      if (savedAnswers[index] === choice) {
+        choiceInput.checked = true;
       }
-      choiceElement.addEventListener('change', () => saveAnswer(i, choice));
-      const choiceText = document.createTextNode(choice);
-      questionElement.appendChild(choiceElement);
-      questionElement.appendChild(choiceText);
+
+      choiceLabel.appendChild(choiceInput);
+      choiceLabel.appendChild(document.createTextNode(choice));
+      questionDiv.appendChild(choiceLabel);
+      questionDiv.appendChild(document.createElement('br'));
     });
-    questionsElement.appendChild(questionElement);
+
+    questionsElement.appendChild(questionDiv);
   });
 }
 
-// Function to save answers to session storage
-function saveAnswer(questionIndex, choice) {
-  userAnswers[questionIndex] = choice;
-  sessionStorage.setItem('progress', JSON.stringify(userAnswers));
+// Function to save progress to session storage
+function saveProgress() {
+  const answers = [];
+  questions.forEach((_, index) => {
+    const selectedOption = document.querySelector(`input[name="question-${index}"]:checked`);
+    if (selectedOption) {
+      answers[index] = selectedOption.value;
+    }
+  });
+  sessionStorage.setItem('progress', JSON.stringify(answers));
 }
 
 // Function to calculate and display the score
-function calculateScore() {
+function submitQuiz() {
+  const savedAnswers = JSON.parse(sessionStorage.getItem('progress')) || [];
   let score = 0;
-  questions.forEach((question, i) => {
-    if (userAnswers[i] === question.answer) {
+
+  questions.forEach((question, index) => {
+    const selectedAnswer = savedAnswers[index];
+    if (selectedAnswer === question.answer) {
       score++;
     }
   });
-  const scoreElement = document.getElementById('score');
-  scoreElement.textContent = `Your score is ${score} out of ${questions.length}`;
-  localStorage.setItem('score', score); // Store score in local storage
+
+  // Display the score
+  document.getElementById('score').textContent = `Your score is ${score} out of ${questions.length}.`;
+
+  // Save the score to local storage
+  localStorage.setItem('score', score);
 }
 
-// Event listener for submit button
-document.getElementById('submit').addEventListener('click', calculateScore);
+// Event listener for the submit button
+document.getElementById('submit').addEventListener('click', () => {
+  saveProgress();
+  submitQuiz();
+});
 
-// Render questions on page load
+// Initial rendering of questions
 renderQuestions();
